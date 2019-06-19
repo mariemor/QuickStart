@@ -1,0 +1,141 @@
+---
+title: "Tidy coral"
+author: "Marie"
+date: "19/06/2019"
+output: html_document
+---
+
+#Set up
+```{r}
+## libraries
+library(tidyverse)
+library(janitor) # install.packages('janitor')
+library(skimr) # install.packages('skimr')
+library(stringr) # added when we needed it for benthic data
+
+## data filepaths/urls ----
+
+## benthic data
+benthic_url <- 'https://www.nodc.noaa.gov/archive/arc0054/0104255/1.1/data/0-data/cd08/100308OaAla03m.CSV'
+
+## buoy data
+buoy_url <- 'http://www.ndbc.noaa.gov/view_text_file.php?filename=mokh1h2010.txt.gz&dir=data/historical/stdmet/'
+```
+
+#Benthic raw
+```{r}
+benthic_raw <- read_csv(benthic_url)
+head(benthic_raw) 
+```
+
+#Wrangle
+```{r}
+## the `janitor` package's `clean_names` function
+benthic <- benthic_raw %>%
+  janitor::clean_names()
+
+names(benthic)
+```
+
+```{r}
+benthic <- benthic %>%
+  select(id_name, point, x, y, id_date) 
+benthic
+
+benthic <- benthic %>%
+  mutate(date = stringr::str_remove_all(id_date, "#"))
+
+benthic <- benthic %>% 
+  mutate(date=stringr::str_remove_all(id_date, "#"))
+```
+
+#Explore
+```{r}
+summary(benthic)
+skimr::skim(benthic)
+
+unique(benthic$id_name)
+
+ggplot(benthic, aes(date, fill = id_name)) +
+         geom_bar()
+```
+
+```{r}
+buoy <- readr::read_csv(buoy_url)
+head(buoy) 
+
+```
+
+```{r}
+## read_table
+buoy_raw <- read_table(buoy_url)
+head(buoy) ## still not quite right -- missed some columns. 
+```
+
+```{r}
+## read_table2
+buoy_raw <- read_table2(buoy_url)
+head(buoy_raw) ## this is what we need!
+```
+
+#Wrangle
+```{r}
+buoy <- buoy_raw
+names(buoy)
+head(buoy)
+
+## 1. overwrite column names
+names(buoy) <- str_c(names(buoy),                  ## current header
+                  buoy %>% filter(`#YY` == "#yr"), ## row1 -- don't say buoy[1,] 
+                  sep = "_")                       ## separate by `_`
+
+## inspect
+names(buoy) ## Looks a lot better
+
+## 2. clean up a bit more to get rid of the `#`s and the `/`s. 
+names(buoy) <- str_replace_all(names(buoy), "#", "")  # replace `#` with nothing 
+names(buoy) <- str_replace_all(names(buoy), "/", "_") # replace `/` with `_`
+
+## inspect to make sure it worked
+names(buoy)
+
+## 3. remove redundant row with units
+buoy <- buoy %>%
+  filter(YY_yr != "#yr")
+head(buoy)
+buoy <- buoy %>%
+  filter(YY_yr != "#yr")
+```
+
+#Explore
+```{r}
+ggplot(buoy, aes(WTMP_degC)) +
+  geom_bar()
+
+## I googled how to rotate the tick label axis so that we can read the labels:
+ggplot(buoy, aes(WTMP_degC)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#Dates
+```{r}
+head(benthic)
+head(buoy)
+
+buoy <- buoy %>%
+  unite(date, c(YY_yr, MM_mo, DD_dy), sep = "-")
+
+head(buoy)
+```
+
+```{r}
+bb_join <- benthic %>%
+  left_join(buoy, by = "date")
+head(bb_join)
+
+bb_join %>%
+  select(id_name, x, y, date, hh_hr, mm_mn, WTMP_degC) %>%
+  head()
+```
+
