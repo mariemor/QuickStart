@@ -1,0 +1,44 @@
+---
+title: "Wrangling"
+author: "Marie"
+date: "19/06/2019"
+output: html_document
+---
+Loading tidyverse
+```{r}
+library(tidyverse)
+```
+
+Load data
+```{r}
+## read gapminder csv. Note the readr:: prefix identifies which package it's in
+gapminder <- read_csv('https://raw.githubusercontent.com/OHI-Science/data-science-training/master/data/gapminder.csv') 
+```
+
+```{r}
+head(gapminder)
+tail(gapminder)
+str(gapminder)
+names(gapminder)
+ncol(gapminder)
+```
+
+```{r}
+gapminder$lifeExp 
+head(gapminder$lifeExp) 
+str(gapminder$lifeExp)
+summary(gapminder$lifeExp)
+```
+
+Filter
+```{r}
+filter(gapminder, lifeExp < 29)
+filter(gapminder, country == "Mexico")
+filter(gapminder, country == "Mexico", year==2002)
+```
+
+```{r}
+a <- filter(gapminder, country== "Brazil", year>1987)
+mean(a$lifeExp)
+```
+
